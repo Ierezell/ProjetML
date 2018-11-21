@@ -17,7 +17,7 @@ print(sys.executable)
 # TODO Pour les quiz ou les exams le temps est limité 20mn quiz 3h exam. Calculez le temps de réponse.
 # TODO Calculez la moyenne sur chaque notebook pour voir si il est difficile ou pas
 # TODO Regarder la rétroaction du correcteur => regex => classer les erreurs par un chiffre
-# TODO
+# TODO Nombre de soumissions par notebooks (colonne count)
 # TODO
 # TODO
 # TODO
@@ -47,34 +47,62 @@ dataset16 = pd.read_json("./nb_entries_a16.json")
 dataset16
 
 # %%
-dataset16.replace({'quiz': 1, 'exercise': 2, 'exam': 3}, inplace=True)
+dataset16.replace({'exercise': 1, 'quiz': 2, 'exam': 3}, inplace=True)
 dataset16
 # %%
 DatasetUser = pd.DataFrame(index=range(len(set(dataset16['user']))))
 DatasetUser['Eleve'] = pd.Series(
     sorted(set(dataset16['user'])), index=DatasetUser.index)  # %%
 DatasetUser['Moyenne'] = pd.Series(index=DatasetUser.index)
+DatasetUser['MoyenneExec'] = pd.Series(index=DatasetUser.index)
+DatasetUser['MoyenneQuiz'] = pd.Series(index=DatasetUser.index)
+DatasetUser['MoyenneExam'] = pd.Series(index=DatasetUser.index)
 DatasetUser['Notebookfaits'] = pd.Series(index=DatasetUser.index)
+DatasetUser['TempsQuiz'] = pd.Series(index=DatasetUser.index)
+DatasetUser['TempsExam'] = pd.Series(index=DatasetUser.index)
+#DatasetUser['TempsParQuestion'] = pd.Series(index=DatasetUser.index)
+# %%
 
 # %%
 for i in DatasetUser.index:
     usr = DatasetUser.iloc[i]['Eleve']
-    results = dataset16.loc[(dataset16['user'] == usr)]['score'].value_counts()
-    if usr == '1bV8Dm':
-        print(results)
-        print("nombre notebook fait", results.sum())
-        print(results.describe())
-        print("moy", np.average(results.index, weights=results.values))
-
+    results = dataset16.loc[(dataset16['user'] == usr)][['type', 'score']]
+    resultsTot = results['score'].value_counts()
+    resultExec = results['score'].where(results['type'] == 1).value_counts()
+    resultQuiz = results['score'].where(results['type'] == 2).value_counts()
+    resultExam = results['score'].where(results['type'] == 3).value_counts()
     DatasetUser.loc[i, 'Moyenne'] = np.average(
-        results.index, weights=results.values)
+        resultsTot.index, weights=resultsTot.values)
+    if 1 in set(results['type']):
+        DatasetUser.loc[i, 'MoyenneExec'] = np.average(
+            resultExec.index, weights=resultExec.values)
+    if 2 in set(results['type']):
+        DatasetUser.loc[i, 'MoyenneQuiz'] = np.average(
+            resultQuiz.index, weights=resultQuiz.values)
+    if 3 in set(results['type']):
+        DatasetUser.loc[i, 'MoyenneExam'] = np.average(
+            resultExam.index, weights=resultExam.values)
+    DatasetUser.loc[i, 'Notebookfaits'] = resultsTot.sum()
 
-    DatasetUser.loc[i, 'Notebookfaits'] = results.sum()
+    tempsQuiz = dataset16.loc[(dataset16['user'] == usr) & (
+        dataset16['type'] == 2)][['notebook', 'count', 'date']]
+
+    tempsExam = dataset16.loc[(dataset16['user'] == usr) & (
+        dataset16['type'] == 3)][['notebook', 'count', 'date']]
 
 # %%
-DatasetUser
+dataset16.loc[(dataset16['user'] == '8UPFDt')].where(
+    dataset16['type'] == 'exam').dropna()[['notebook', 'count', 'date']]
+# %%
+tempsExam = dataset16.loc[(dataset16['user'] == 'LjGecT') & (
+    dataset16['type'] == 3)][['notebook', 'count', 'date']]
+# %%
+tempsExam['date'].dt.to_period('D')
+# %%
+plop = set(list(map(lambda x: x.day, list(tempsExam['date']))))
 
-
+# %%
+dataset16.loc[105033]['answer']
 # %%
 ###################################################################
 ###################################################################
@@ -100,7 +128,7 @@ columns_to_numbers = dict(zip(dataset16.columns, range(len(dataset16.columns))))
 dataset16.where(dataset16['score'] == 100).dropna()
 DatasetUser.loc[3, 'Eleve']
 
-
+pd.Series.between(left, right)
 
 """
 # %%
