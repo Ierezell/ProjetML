@@ -1,4 +1,19 @@
 # %%
+from sklearn.svm import SVR
+from sklearn.preprocessing import minmax_scale
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import KFold, train_test_split
+import torchvision
+from torch.optim import Adam
+import torch.nn.functional as F
+import torch.nn as nn
+import torch
+from torch.utils.data.sampler import SubsetRandomSampler
+
+import time
+import plotly.graph_objs as go
+from plotly.offline import plot
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.decomposition import PCA
@@ -11,6 +26,7 @@ import numpy as np
 import sys
 print(sys.path)
 print(sys.executable)
+
 
 # TODO Changer le feedback et garder uniquement le type d'erreur.
 # TODO Faire un dictionnaire de data par user (nb réussi, score moyen etc...)
@@ -59,9 +75,20 @@ DatasetUser['MoyenneQuiz'] = pd.Series(index=DatasetUser.index)
 DatasetUser['MoyenneExam'] = pd.Series(index=DatasetUser.index)
 DatasetUser['Notebookfaits'] = pd.Series(index=DatasetUser.index)
 DatasetUser['TempsQuiz'] = pd.Series(index=DatasetUser.index)
-DatasetUser['TempsExam'] = pd.Series(index=DatasetUser.index)
-#DatasetUser['TempsParQuestion'] = pd.Series(index=DatasetUser.index)
+DatasetUser['TempsExam1'] = pd.Series(index=DatasetUser.index)
+DatasetUser['TempsExam2'] = pd.Series(index=DatasetUser.index)
+numNotebookQuiz = set(dataset16['notebook'].loc[(dataset16['type'] == 2) &
+                                                (dataset16['valid'] == True)])
+for n in numNotebookQuiz:
+    DatasetUser['TempsQuizz_{}'.format(n)] = pd.Series(index=DatasetUser.index)
+
+
 # %%
+
+# %%
+# %%
+# %%
+
 
 # %%
 for i in DatasetUser.index:
@@ -84,25 +111,60 @@ for i in DatasetUser.index:
             resultExam.index, weights=resultExam.values)
     DatasetUser.loc[i, 'Notebookfaits'] = resultsTot.sum()
 
-    tempsQuiz = dataset16.loc[(dataset16['user'] == usr) & (
-        dataset16['type'] == 2)][['notebook', 'count', 'date']]
+    tempsQuiz = dataset16.loc[(dataset16['user'] == usr) &
+                              (dataset16['type'] == 2) &
+                              (dataset16['valid'] == True)][
+        ['notebook', 'count', 'date']]
 
-    tempsExam = dataset16.loc[(dataset16['user'] == usr) & (
-        dataset16['type'] == 3)][['notebook', 'count', 'date']]
+    tempsExam = dataset16.loc[(dataset16['user'] == usr) &
+                              (dataset16['type'] == 3) &
+                              (dataset16['valid'] == True)][
+        ['notebook', 'count', 'date']]
+    if not tempsExam.empty:
+        tempsExam1 = tempsExam.where(
+            tempsExam['date'].dt.date == tempsExam['date'].loc[
+                tempsExam.index[0]].date()).dropna()['date']
+
+        tempsExam2 = tempsExam.where(
+            tempsExam['date'].dt.date == tempsExam['date'].loc[
+                tempsExam.index[-1]].date()).dropna()['date']
+
+        DatasetUser.loc[i, 'TempsExam1'] = (
+            tempsExam1.max()-tempsExam1.min()).seconds
+
+        DatasetUser.loc[i, 'TempsExam2'] = (
+            tempsExam2.max()-tempsExam2.min()).seconds
+# %%
+DatasetUser.to_pickle('DatasetUser.save')
+# %%
+DatasetUser
 
 # %%
-dataset16.loc[(dataset16['user'] == '8UPFDt')].where(
-    dataset16['type'] == 'exam').dropna()[['notebook', 'count', 'date']]
 # %%
-tempsExam = dataset16.loc[(dataset16['user'] == 'LjGecT') & (
-    dataset16['type'] == 3)][['notebook', 'count', 'date']]
 # %%
-tempsExam['date'].dt.to_period('D')
+numNotebookQuiz = set(dataset16['notebook'].loc[(dataset16['type'] == 2) &
+                                                (dataset16['valid'] == True)])
+numNotebookQuiz
 # %%
-plop = set(list(map(lambda x: x.day, list(tempsExam['date']))))
+tempsQuiz = dataset16.loc[(dataset16['user'] == 'HhwFBj') &
+                          (dataset16['type'] == 2) &
+                          (dataset16['valid'] == True)][
+    ['notebook', 'count', 'date']]
+tempsQuiz
 
 # %%
-dataset16.loc[105033]['answer']
+for n in numNotebookQuiz:
+    tps = tempsQuiz.where(tempsQuiz['notebook'] == n).dropna()
+    DatasetUser.loc['TempsQuizz_{}'.format(n)] = (tps.max()-tps.min()).seconds
+# %%
+tps = tempsQuiz[['date', 'count', 'notebook']].where(
+    tempsQuiz['notebook'] == 44).dropna()['date']
+tps
+# %%
+(tps.max()-tps.min()).seconds
+# %%
+# %%
+
 # %%
 ###################################################################
 ###################################################################
@@ -118,17 +180,31 @@ dataset16.loc[105033]['answer']
 ###################################################################
 ###################################################################
 """
+HhwFBj
+
+
+
 dataset16[['notebook', 'date']].where(dataset16['user'] == 'HhwFBj').dropna()
 dataset16['feedback'][0]
 set(dataset16['type'])
-hasPassed100 = dataset16['feedback'].str.contains('Bravo!', na=np.nan, case=True)
+hasPassed100 = dataset16['feedback'].str.contains(
+    'Bravo!', na=np.nan, case=True)
 indreussi100 = hasPassed[hasPassed100].index
 hasPassed = dataset16['user'].where(dataset16['score']>50)
-columns_to_numbers = dict(zip(dataset16.columns, range(len(dataset16.columns))))
 dataset16.where(dataset16['score'] == 100).dropna()
 DatasetUser.loc[3, 'Eleve']
 
 pd.Series.between(left, right)
+
+dataset16.loc[(dataset16['user'] == '8UPFDt')].where(
+    dataset16['type'] == 'exam').dropna()[['notebook', 'count', 'date']]
+columns_to_numbers = dict(
+    zip(dataset16.columns, range(len(dataset16.columns))))
+
+def get_column_name(nb, dic):
+    for i in dic:
+        if dic[i] == nb:
+            return i
 
 """
 # %%
@@ -192,13 +268,13 @@ pd.Series.between(left, right)
 
 # %%
 plt.figure(figsize=[10, 5])
-dataset16.rename(columns=columns_to_numbers).boxplot()
+DatasetUser.drop(columns=['Notebookfaits']).boxplot()
 plt.show()
 
 
 # %%
-correlations = dataset16.rename(columns=columns_to_numbers).corr()
-
+correlations = DatasetUser.corr()
+correlations
 
 # %%
 names = list(correlations.columns)
@@ -206,7 +282,7 @@ fig = plt.figure(figsize=[10, 10])
 ax = fig.add_subplot(111)
 cax = ax.matshow(correlations, vmin=-1, vmax=1)
 fig.colorbar(cax)
-ticks = np.arange(0, 46, 1)
+ticks = np.arange(0, len(correlations), 1)
 ax.set_xticks(ticks)
 ax.set_yticks(ticks)
 ax.set_xticklabels(names)
@@ -226,26 +302,11 @@ for i in correlations.columns:
                 maximum[maximum.index(min(maximum))] = abs(correlations[i][j])
 print(maximum)
 print(ind_max)
-
-
 # %%
-def get_column_name(nb, dic):
-    for i in dic:
-        if dic[i] == nb:
-            return i
-
-
-# %%
-for i in range(len(ind_max)):
-    print("Pair_"+str(i))
-    print(get_column_name(ind_max[i][0], columns_to_numbers))
-    print(get_column_name(ind_max[i][1], columns_to_numbers))
-    print()
-
-
+DatasetUser
 # %%
 dataset_std = pd.DataFrame(StandardScaler().fit_transform(
-    dataset16.drop(labels=dataset16.columns[0], axis=1)))
+    DatasetUser.drop(columns=['Eleve']).dropna()))
 cov_std = dataset_std.corr()
 eig_vals, eig_vect = np.linalg.eig(cov_std)
 eig_pairs = [(np.abs(eig_vals[i]), eig_vect[:, i])
@@ -265,7 +326,7 @@ plt.show()
 
 
 # %%
-pca = PCA().fit(dataset16.drop(labels=dataset16.columns[0], axis=1))
+pca = PCA().fit(DatasetUser.drop(columns=['Eleve']).dropna())
 plt.plot(np.cumsum(pca.explained_variance_ratio_))
 plt.xlabel('number of components')
 plt.ylabel('cumulative variance')
@@ -276,52 +337,51 @@ dataset_pca = PCA(n_components=2).fit_transform(dataset_std)
 
 
 # %%
-pca = PCA(n_components=3).fit(dataset16.drop(
-    labels=dataset16.columns[0], axis=1))
-X_reduced = pca.transform(dataset16.drop(labels=dataset16.columns[0], axis=1))
+pca = PCA(n_components=3).fit(DatasetUser.drop(columns=['Eleve']).dropna())
+X_reduced = pca.transform(DatasetUser.drop(columns=['Eleve']).dropna())
 trace1 = go.Scatter3d(
     x=X_reduced[:, 0],
     y=X_reduced[:, 1],
     z=X_reduced[:, 2],
     mode='markers',
     marker=dict(
-        size=12,
+        size=10,
         color='blue',
-        opacity=1
+        opacity=0.8
     )
 
 )
 
-dc_1 = go.Scatter3d(x=[0, pca.components_.T[0][0]],
-                    y=[0, pca.components_.T[0][1]],
-                    z=[0, pca.components_.T[0][2]],
+dc_1 = go.Scatter3d(x=[0, 30*pca.components_.T[0][0]],
+                    y=[0, 30*pca.components_.T[0][1]],
+                    z=[0, 30*pca.components_.T[0][2]],
                     marker=dict(size=1,
                                 color="rgb(84,48,5)"),
                     line=dict(color="red",
                               width=6),
                     name="Var1"
                     )
-dc_2 = go.Scatter3d(x=[0, pca.components_.T[1][0]],
-                    y=[0, pca.components_.T[1][1]],
-                    z=[0, pca.components_.T[1][2]],
+dc_2 = go.Scatter3d(x=[0, 30*pca.components_.T[1][0]],
+                    y=[0, 30*pca.components_.T[1][1]],
+                    z=[0, 30*pca.components_.T[1][2]],
                     marker=dict(size=1,
                                 color="rgb(84,48,5)"),
                     line=dict(color="green",
                               width=6),
                     name="Var2"
                     )
-dc_3 = go.Scatter3d(x=[0, pca.components_.T[2][0]],
-                    y=[0, pca.components_.T[2][1]],
-                    z=[0, pca.components_.T[2][2]],
+dc_3 = go.Scatter3d(x=[0, 30*pca.components_.T[2][0]],
+                    y=[0, 30*pca.components_.T[2][1]],
+                    z=[0, 30*pca.components_.T[2][2]],
                     marker=dict(size=1,
                                 color="rgb(84,48,5)"),
-                    line=dict(color="blue",
+                    line=dict(color="pink",
                               width=6),
                     name="Var3"
                     )
-dc_4 = go.Scatter3d(x=[0, pca.components_.T[3][0]],
-                    y=[0, pca.components_.T[3][1]],
-                    z=[0, pca.components_.T[3][2]],
+dc_4 = go.Scatter3d(x=[0, 30*pca.components_.T[3][0]],
+                    y=[0, 30*pca.components_.T[3][1]],
+                    z=[0, 30*pca.components_.T[3][2]],
                     marker=dict(size=1,
                                 color="rgb(84,48,5)"),
                     line=dict(color="yellow",
@@ -342,12 +402,12 @@ layout = go.Layout(
     )
 )
 fig = go.Figure(data=data, layout=layout)
-plot(fig, filename='3d-scatter-tupac-with-mac')
+plot(fig, filename='undessin.html')
 
 
 # %%
-dat = pd.DataFrame(StandardScaler().fit_transform(dataset16.drop(
-    labels=dataset16.columns[0], axis=1).rename(columns=columns_to_numbers)))
+dat = pd.DataFrame(StandardScaler().fit_transform(
+    DatasetUser.drop(columns=['Eleve']).dropna()))
 
 pca = PCA(n_components=2)
 pca.fit(dat)
@@ -476,3 +536,173 @@ for n_clusters in range_n_clusters:
                  fontsize=14, fontweight='bold')
 
     plt.show()
+
+
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+######################################################
+
+###############################################################################
+# Apprentissage et reconnaissance
+# GIF-4101 / GIF-7005, Automne 2018
+# Devoir 4, Question 1
+#
+# #############################################################################
+# ############################# INSTRUCTIONS ##################################
+# #############################################################################
+#
+# - Repérez les commentaires commenà§ant par TODO : ils indiquent une tâche
+#       que vous devez effectuer.
+# - Vous ne pouvez PAS changer la structure du code, importer d'autres
+#       modules / sous-modules, ou ajouter d'autres fichiers Python
+# - Ne touchez pas aux variables, TMAX*, ERRMAX* et _times, à  la fonction
+#       checkTime, ni aux conditions vérifiant le bon fonctionnement de votre
+#       code. Ces structures vous permettent de savoir rapidement si vous ne
+#       respectez pas les requis minimum pour une question en particulier.
+#       Toute sous-question n'atteignant pas ces minimums se verra attribuer
+#       la note de zéro (0) pour la partie implémentation!
+#
+###############################################################################
+# %%
+datas = pd.read_pickle('DatasetUser.save')
+datas = DatasetUser.drop(columns=['Eleve']).dropna()
+# %%
+datas
+# %%
+y = datas['MoyenneExam'].values
+X = datas.drop(columns=['MoyenneExam', 'Moyenne']).values
+# %%
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.4, random_state=666, shuffle=True)
+# %%
+RegSVM = SVR()
+RegSVM.fit(X_train, y_train)
+RegSVM.score(X_test, y_test)
+
+# %%
+
+
+class StudentNet(nn.Module):
+    def __init__(self, input_size):
+        super(StudentNet, self).__init__()
+
+        self.L1 = nn.Linear(input_size, input_size*2)
+        self.L2 = nn.Linear(input_size*2, input_size//2)
+        self.L3 = nn.Linear(input_size, 1)
+        self.drop = nn.Dropout(p=0.4)
+
+    def forward(self, x):
+        y = F.relu(self.L1(x))
+        y = F.relu(self.L2(y))
+        y = self.drop(y)
+        y = F.sigmoid(self.L3(y))
+        return y
+
+
+class StudentDataset(Dataset):
+    def __init__(self, datalocation):
+        super(StudentDataset, self).__init__()
+        self.datalocation = datalocation
+        loadedPanda = pd.read_pickle(self.datalocation)
+        self.datas = loadedPanda.drop(columns=['Eleve']).dropna()
+
+    def __getitem__(self, index):
+        y = self.datas['MoyenneExam'].values
+        X = self.datas.drop(columns=['MoyenneExam', 'Moyenne']).values
+        return X[index], y[index]
+
+    def __len__(self):
+        return len(self.datas)
+
+
+device = 'cpu'
+
+nb_epoch = 10
+learning_rate = 0.01
+momentum = 0.9
+batch_size = 32
+
+dataset = StudentDataset('./DatasetUser.save')
+indices = list(range(len(dataset)))
+train_idx = np.random.choice(
+    indices, size=int(np.floor(0.6*len(indices))), replace=False)
+test_idx = list(set(indices) - set(train_idx))
+
+train_sampler = SubsetRandomSampler(train_idx)
+test_sampler = SubsetRandomSampler(test_idx)
+
+train_loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH,
+                                           sampler=train_sampler)
+
+test_loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH,
+                                          sampler=test_sampler)
+
+
+model = StudentNet(len(X_train[0]))
+criterion = nn.BCELoss()
+optimizer = Adam(model.parameters(), lr=learning_rate)
+for i_epoch in range(nb_epoch):
+    start_time, train_losses = time.time(), []
+    for batch in train_loader:
+        pred, targets = batch
+        optimizer.zero_grad()
+        predictions = model(pred)
+        loss = criterion(predictions, targets)
+        loss.backward()
+        optimizer.step()
+        train_losses.append(loss.item())
+
+    print(' [-] epoch {:4}/{:}, train loss {:.6f} in {:.2f}s'.format(
+        i_epoch+1, nb_epoch, np.mean(train_losses),
+        time.time()-start_time))
+
+accuracy = 0
+for i, batch in enumerate(test_loader):
+    pred, targets = batch
+    predictions = model.forward(pred)
+    accuracy += torch.where(targets+0.1 > predictions >
+                            targets-0.1, 1, 0).sum()
+
+# torch.save(model.state_dict(), './Backup/StudentNet.pt')
