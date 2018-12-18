@@ -373,6 +373,54 @@ def show_Kmeans_2D(dataset):
         # plt.show()
 
 
+def _plot_clustering(X_red, labels, title, savepath):
+    # Tiré de https://scikit-learn.org/stable/auto_examples/cluster/plot_digits_linkage.html
+    # Auteur : Gael Varoquaux
+    # Distribué sous license BSD
+    #
+    # X_red doit àªtre un array numpy contenant les caractéristiques (features)
+    #   des données d'entrée, réduit à  2 dimensions
+    #
+    # labels doit àªtre un array numpy contenant les étiquettes de chacun des
+    #   éléments de X_red, dans le màªme ordre
+    #
+    # title est le titre que vous souhaitez donner à  la figure
+    #
+    # savepath est le nom du fichier oà¹ la figure doit àªtre sauvegardée
+    #
+    x_min, x_max = numpy.min(X_red, axis=0), numpy.max(X_red, axis=0)
+    X_red = (X_red - x_min) / (x_max - x_min)
+
+    pyplot.figure(figsize=(9, 6), dpi=160)
+    for i in range(X_red.shape[0]):
+        pyplot.text(X_red[i, 0], X_red[i, 1], str(y[i]),
+                    color=pyplot.cm.nipy_spectral(labels[i] / 10.),
+                    fontdict={'weight': 'bold', 'size': 9})
+
+    pyplot.xticks([])
+    pyplot.yticks([])
+    pyplot.title(title, size=17)
+    pyplot.axis('off')
+    pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
+    pyplot.savefig(savepath)
+    pyplot.close()
+
+
+def Make_clustering(dataset, label_columns):
+    dataset = dataset.drop(columns=['Eleve']).dropna()
+    X = datas.drop(columns=[column_label]).values
+    y = datas[column_label].values
+    pca = PCA(n_components=2)
+    mds = MDS(n_components=2, n_init=1)
+    tsne = TSNE(n_components=2)
+    X_pca = pca.fit(dataset.values)
+    X_mds = mds.fit_transform(dataset.values)
+    X_tsne = tsne.fit_transform(dataset.values)
+    plot_clustering(X_pca, y, "pca", "./pca")
+    plot_clustering(X_mds, y, "mds", "./MDS")
+    plot_clustering(X_tsne, y, "tsne", "./tSNE")
+
+
 def load_and_split_to_numpy(path, column_label):
     datas = pd.read_pickle(path)
     datas = datas.drop(columns=['Eleve']).dropna()

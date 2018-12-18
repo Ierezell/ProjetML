@@ -4,6 +4,7 @@ from utils import show_pca_features, show_pca_3D, show_pca_2D
 from utils import get_best_Kmeans, show_Kmeans_2D
 from utils import load_and_split_to_numpy
 from utils import StudentPerceptron
+from utils import Make_clustering
 # %%
 # TODO Changer le feedback et garder uniquement le type d'erreur.
 
@@ -76,7 +77,7 @@ DatasetUser = pd.read_pickle('DatasetUser.save')
 X_train, y_train, X_test, y_test = load_and_split_to_numpy(
     'DatasetUser.save', 'Moyenne')
 # %%
-RegSVM = SVR()
+RegSVM = LinearSVC()
 RegSVM.fit(X_train, y_train)
 print('score', RegSVM.score(X_test, y_test))
 Pcm = StudentPerceptron()
