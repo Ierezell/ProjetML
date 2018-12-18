@@ -370,7 +370,7 @@ def show_Kmeans_2D(dataset):
                       "with n_clusters = %d" % n_clusters),
                      fontsize=14, fontweight='bold')
 
-        # plt.show()
+        plt.show()
 
 
 def _plot_clustering(X_red, labels, title, savepath):

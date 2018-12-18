@@ -5,35 +5,36 @@ from utils import get_best_Kmeans, show_Kmeans_2D
 from utils import load_and_split_to_numpy
 from utils import StudentPerceptron
 from utils import Make_clustering
+import pandas as pd
+
 # %%
 # TODO Changer le feedback et garder uniquement le type d'erreur.
+# Ex : <balise html> votre score blabla votre erreur (ERREUR) à garder !
 
 # TODO Faire un dictionnaire de data par user (nb réussi, score moyen etc...)
 # DONE Moyenne exercice quiz et exam et temps exam partiel et final.
 
 # TODO Pour les quiz ou les exams le temps est limité 20mn quiz 3h exam.
-#      Calculez le temps de réponse.
+#      Calculez le temps de réponse. # Done pour exams
 
 # TODO Calculez la moyenne sur chaque notebook pour voir si
 #      il est difficile ou pas
 
 # TODO Regarder la rétroaction du correcteur => regex
-#      => classer les erreurs par un chiffre
+#      => classer les erreurs par un chiffre => stat sur les erreurs
 # TODO Nombre de soumissions par notebooks (colonne count)
 
 # TODO Faire un T-sne comme dans le devoir 5 (cf code d5q4)
 # TODO Obtenir des résultats avec LinearSVC regression avec un svm
-# TODO Obtenir des résultats avec le PCM fait main (quasi bon)
-# TODO Classifier avec les algos vu en cours ! EM, Kmeans, SVM, PCM, Noyeau gaussien etc...
+# TODO Obtenir des résultats avec le PCM fait main (quasi bon StudentNet)
+# TODO Classifier avec les algos vu en cours !
+# EM,
+#  Kmeans  (done),
+#  SVM (almost done, utiliser LinearSVC et checker la perf),
+#  PCM (almost done),
+#  Noyeau gaussien
+# etc...
 # TODO !!!!!!!!!!!!!!    FAIRE LE RAPPORT   !!!!!!!!!!!!!!!
-
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.decomposition import PCA
-
-from sklearn.preprocessing import StandardScaler
-import plotly.graph_objs as go
 
 
 # <ul>
@@ -52,26 +53,25 @@ import plotly.graph_objs as go
 #                        '2018-10-15 15:14:55.788330'),</li>
 # </ul>
 
-"""
 dataset16, DatasetUser = load_and_init_datasets("./nb_entries_a16.json")
 DatasetUser = fill_DataserUser(dataset16, DatasetUser)
 DatasetUser.to_pickle('DatasetUser.save')
-"""
+
 DatasetUser = pd.read_pickle('DatasetUser.save')
 
-# make_boxplot(DatasetUser.drop(columns=['Eleve']))
-# correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
-# print(maxcorr, indmaxcorr)
+make_boxplot(DatasetUser.drop(columns=['Eleve']))
+correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
+print(maxcorr, indmaxcorr)
 
-# show_pca_features(DatasetUser.drop(columns=['Eleve']))
+show_pca_features(DatasetUser.drop(columns=['Eleve']))
 
-# show_pca_3D(DatasetUser.drop(columns=['Eleve']))
-# show_pca_2D(DatasetUser.drop(columns=['Eleve']))
+show_pca_3D(DatasetUser.drop(columns=['Eleve']))
+show_pca_2D(DatasetUser.drop(columns=['Eleve']))
 
-# best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
-# print("Le meilleurs nombre de clusters est : "+str(best_k))
-# show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
-
+best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
+print("Le meilleurs nombre de clusters est : "+str(best_k))
+show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
+Make_clustering(DatasetUser, ['Moyenne'])
 
 # print("\n\n\n\n\n\n\n\n\n\n\n\n\n")
 X_train, y_train, X_test, y_test = load_and_split_to_numpy(
