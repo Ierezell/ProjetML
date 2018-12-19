@@ -5,7 +5,14 @@ from utils import get_best_Kmeans, show_Kmeans_2D
 from utils import load_and_split_to_numpy
 from utils import StudentPerceptron
 from utils import Make_clustering
+from utils import test_many_classifiers
 import pandas as pd
+from sklearn.svm import LinearSVC
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import NearestCentroid
+
 
 # %%
 # TODO Changer le feedback et garder uniquement le type d'erreur.
@@ -15,25 +22,30 @@ import pandas as pd
 # DONE Moyenne exercice quiz et exam et temps exam partiel et final.
 
 # TODO Pour les quiz ou les exams le temps est limité 20mn quiz 3h exam.
-#      Calculez le temps de réponse. # Done pour exams
+#      Calculez le temps de réponse.
+# Done pour exams
 
 # TODO Calculez la moyenne sur chaque notebook pour voir si
-#      il est difficile ou pas
+#      il est difficile ou pas et ponderer ?
 
 # TODO Regarder la rétroaction du correcteur => regex
 #      => classer les erreurs par un chiffre => stat sur les erreurs
+
 # TODO Nombre de soumissions par notebooks (colonne count)
 
 # TODO Faire un T-sne comme dans le devoir 5 (cf code d5q4)
+# #Done mais pas beau
+
 # TODO Obtenir des résultats avec LinearSVC regression avec un svm
 # TODO Obtenir des résultats avec le PCM fait main (quasi bon StudentNet)
 # TODO Classifier avec les algos vu en cours !
-# EM,
+#  EM,
 #  Kmeans  (done),
 #  SVM (almost done, utiliser LinearSVC et checker la perf),
 #  PCM (almost done),
-#  Noyeau gaussien
-# etc...
+#  Noyeau gaussien (Done)
+#  etc...
+# TODO Avec ça, faire un classificateur par vote
 # TODO !!!!!!!!!!!!!!    FAIRE LE RAPPORT   !!!!!!!!!!!!!!!
 
 
@@ -53,40 +65,42 @@ import pandas as pd
 #                        '2018-10-15 15:14:55.788330'),</li>
 # </ul>
 
-dataset16, DatasetUser = load_and_init_datasets("./nb_entries_a16.json")
-DatasetUser = fill_DataserUser(dataset16, DatasetUser)
-DatasetUser.to_pickle('DatasetUser.save')
+# dataset16, DatasetUser = load_and_init_datasets("./nb_entries_a16.json")
+# DatasetUser = fill_DataserUser(dataset16, DatasetUser)
+# DatasetUser.to_pickle('DatasetUser.save')
 
 DatasetUser = pd.read_pickle('DatasetUser.save')
 
-make_boxplot(DatasetUser.drop(columns=['Eleve']))
-correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
-print(maxcorr, indmaxcorr)
+# make_boxplot(DatasetUser.drop(columns=['Eleve']))
+# correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
+# print(maxcorr, indmaxcorr)
 
-show_pca_features(DatasetUser.drop(columns=['Eleve']))
+# show_pca_features(DatasetUser.drop(columns=['Eleve']))
 
-show_pca_3D(DatasetUser.drop(columns=['Eleve']))
-show_pca_2D(DatasetUser.drop(columns=['Eleve']))
+# show_pca_3D(DatasetUser.drop(columns=['Eleve']))
+# show_pca_2D(DatasetUser.drop(columns=['Eleve']))
 
-best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
-print("Le meilleurs nombre de clusters est : "+str(best_k))
-show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
-Make_clustering(DatasetUser, ['Moyenne'])
+# best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
+# print("Le meilleurs nombre de clusters est : "+str(best_k))
+# show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
+Make_clustering(DatasetUser, 'Moyenne')
 
 # print("\n\n\n\n\n\n\n\n\n\n\n\n\n")
-X_train, y_train, X_test, y_test = load_and_split_to_numpy(
+X, y, X_train, y_train, X_test, y_test = load_and_split_to_numpy(
     'DatasetUser.save', 'Moyenne')
-# %%
-RegSVM = LinearSVC()
-RegSVM.fit(X_train, y_train)
-print('score', RegSVM.score(X_test, y_test))
-Pcm = StudentPerceptron()
+classifieurs = [LinearSVC(),
+                StudentPerceptron(),
+                # QuadraticDiscriminantAnalysis(),
+                LinearDiscriminantAnalysis(),
+                GaussianNB(),
+                NearestCentroid()]
+ErrorsClassifieurs = test_many_classifiers(X, y, classifieurs, Kfold=5)
+print(ErrorsClassifieurs)
 # Pcm.load()
-Pcm.train(batch_size=1)
-Pcm.score()
-Pcm.save()
+# Pcm.train(batch_size=1)
+# Pcm.score()
+# Pcm.save()
 # %%
-
 
 # TEST POUR LE TEMPS QUIZZ NON FONCTIONNEL !
 """ tempsQuiz = dataset16.loc[(dataset16['user'] == 'HhwFBj') &

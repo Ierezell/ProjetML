@@ -14,17 +14,23 @@ from plotly.offline import plot, iplot
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.decomposition import PCA
+from sklearn.manifold import MDS, TSNE
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import sys
+import math
+
+
+# Méthodes d'évaluation
+from sklearn.model_selection import train_test_split, RepeatedKFold
 # import cufflinks as cf
 # cf.go_offline()
 
 
 def load_and_init_datasets(path):
-    dataset16 = pd.read_json("./nb_entries_a16.json")
+    dataset16 = pd.read_json(path)
     dataset16.replace({'exercise': 1, 'quiz': 2, 'exam': 3}, inplace=True)
 
     DatasetUser = pd.DataFrame(index=range(len(set(dataset16['user']))))
@@ -40,9 +46,11 @@ def load_and_init_datasets(path):
     DatasetUser['TempsExam2'] = pd.Series(index=DatasetUser.index)
     # DatasetUser['TempsQuiz'] = pd.Series(index=DatasetUser.index)
     # for n in numNotebookQuiz:
-    #     DatasetUser['TempsQuizz_{}'.format(n)] = pd.Series(index=DatasetUser.index)
-    # numNotebookQuiz = set(dataset16['notebook'].loc[(dataset16['type'] == 2) &
-    #                                                 (dataset16['valid'] == True)])
+    #     DatasetUser[
+    #       'TempsQuizz_{}'.format(n)] = pd.Series(index=DatasetUser.index)
+    # numNotebookQuiz = set(
+    # dataset16['notebook'].loc[(dataset16['type'] == 2) &
+    #                                         (dataset16['valid'] == True)])
     return dataset16, DatasetUser
 
 
@@ -370,7 +378,7 @@ def show_Kmeans_2D(dataset):
                       "with n_clusters = %d" % n_clusters),
                      fontsize=14, fontweight='bold')
 
-        plt.show()
+    # plt.show()
 
 
 def _plot_clustering(X_red, labels, title, savepath):
@@ -378,57 +386,149 @@ def _plot_clustering(X_red, labels, title, savepath):
     # Auteur : Gael Varoquaux
     # Distribué sous license BSD
     #
-    # X_red doit àªtre un array numpy contenant les caractéristiques (features)
+    # X_red doit àªtre un array np contenant les caractéristiques (features)
     #   des données d'entrée, réduit à  2 dimensions
     #
-    # labels doit àªtre un array numpy contenant les étiquettes de chacun des
+    # labels doit àªtre un array np contenant les étiquettes de chacun des
     #   éléments de X_red, dans le màªme ordre
     #
     # title est le titre que vous souhaitez donner à  la figure
     #
     # savepath est le nom du fichier oà¹ la figure doit àªtre sauvegardée
     #
-    x_min, x_max = numpy.min(X_red, axis=0), numpy.max(X_red, axis=0)
+    x_min, x_max = np.min(X_red, axis=0), np.max(X_red, axis=0)
     X_red = (X_red - x_min) / (x_max - x_min)
 
-    pyplot.figure(figsize=(9, 6), dpi=160)
+    plt.figure(figsize=(9, 6), dpi=160)
     for i in range(X_red.shape[0]):
-        pyplot.text(X_red[i, 0], X_red[i, 1], str(y[i]),
-                    color=pyplot.cm.nipy_spectral(labels[i] / 10.),
-                    fontdict={'weight': 'bold', 'size': 9})
+        plt.text(X_red[i, 0], X_red[i, 1], str(round(labels[i], 2)),
+                 color=plt.cm.nipy_spectral(labels[i]),
+                 fontdict={'weight': 'bold', 'size': 9})
 
-    pyplot.xticks([])
-    pyplot.yticks([])
-    pyplot.title(title, size=17)
-    pyplot.axis('off')
-    pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
-    pyplot.savefig(savepath)
-    pyplot.close()
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(title, size=17)
+    plt.axis('off')
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(savepath)
+    plt.close()
 
 
 def Make_clustering(dataset, label_columns):
     dataset = dataset.drop(columns=['Eleve']).dropna()
-    X = datas.drop(columns=[column_label]).values
-    y = datas[column_label].values
+    norm_datas = (dataset-dataset.min())/(dataset.max()-dataset.min())
+    X = norm_datas.drop(columns=[label_columns]).values
+    y = norm_datas[label_columns].values
     pca = PCA(n_components=2)
     mds = MDS(n_components=2, n_init=1)
     tsne = TSNE(n_components=2)
-    X_pca = pca.fit(dataset.values)
-    X_mds = mds.fit_transform(dataset.values)
-    X_tsne = tsne.fit_transform(dataset.values)
-    plot_clustering(X_pca, y, "pca", "./pca")
-    plot_clustering(X_mds, y, "mds", "./MDS")
-    plot_clustering(X_tsne, y, "tsne", "./tSNE")
+    X_pca = pca.fit_transform(X, y)
+    X_mds = mds.fit_transform(X, y)
+    X_tsne = tsne.fit_transform(X, y)
+    X_pca = np.array(X_pca)
+    X_mds = np.array(X_mds)
+    X_tsne = np.array(X_tsne)
+    _plot_clustering(X_pca, y, "pca", "./pca")
+    _plot_clustering(X_mds, y, "mds", "./MDS")
+    _plot_clustering(X_tsne, y, "tsne", "./tSNE")
+
+
+def show_tsne_3D(dataset):
+    tsne = TSNE(n_components=3).fit(dataset.dropna())
+    X_reduced = tsne.transform(dataset.dropna())
+    trace1 = go.Scatter3d(
+        x=X_reduced[:, 0],
+        y=X_reduced[:, 1],
+        z=X_reduced[:, 2],
+        mode='markers',
+        marker=dict(
+            size=10,
+            color='blue',
+            opacity=0.8
+        )
+
+    )
+
+    dc_1 = go.Scatter3d(x=[0, 30*pca.components_.T[0][0]],
+                        y=[0, 30*pca.components_.T[0][1]],
+                        z=[0, 30*pca.components_.T[0][2]],
+                        marker=dict(size=1,
+                                    color="rgb(84,48,5)"),
+                        line=dict(color="red",
+                                  width=6),
+                        name="Var1"
+                        )
+    dc_2 = go.Scatter3d(x=[0, 30*pca.components_.T[1][0]],
+                        y=[0, 30*pca.components_.T[1][1]],
+                        z=[0, 30*pca.components_.T[1][2]],
+                        marker=dict(size=1,
+                                    color="rgb(84,48,5)"),
+                        line=dict(color="green",
+                                  width=6),
+                        name="Var2"
+                        )
+    dc_3 = go.Scatter3d(x=[0, 30*pca.components_.T[2][0]],
+                        y=[0, 30*pca.components_.T[2][1]],
+                        z=[0, 30*pca.components_.T[2][2]],
+                        marker=dict(size=1,
+                                    color="rgb(84,48,5)"),
+                        line=dict(color="pink",
+                                  width=6),
+                        name="Var3"
+                        )
+    dc_4 = go.Scatter3d(x=[0, 30*pca.components_.T[3][0]],
+                        y=[0, 30*pca.components_.T[3][1]],
+                        z=[0, 30*pca.components_.T[3][2]],
+                        marker=dict(size=1,
+                                    color="rgb(84,48,5)"),
+                        line=dict(color="yellow",
+                                  width=6),
+                        name="Var4"
+                        )
+
+    data = [trace1, dc_1, dc_2, dc_3, dc_4]
+    layout = go.Layout(
+        xaxis=dict(
+            title='PC1',
+            titlefont=dict(
+                family='Courier New, monospace',
+                size=18,
+                color='#7f7f7f'
+            )
+        )
+    )
+    fig = go.Figure(data=data, layout=layout)
+    # iplot(fig, filename='pca_3D')
+    try:
+        plot(fig, filename='PCA_3D.html')
+    except TypeError:
+        pass
 
 
 def load_and_split_to_numpy(path, column_label):
     datas = pd.read_pickle(path)
     datas = datas.drop(columns=['Eleve']).dropna()
-    y = datas[column_label].values
-    X = datas.drop(columns=[column_label]).values
+    norm_datas = (datas-datas.min())/(datas.max()-datas.min())
+    y = np.array(np.ceil(norm_datas[column_label].values*100), dtype=int)
+    # y = (y//4)*4
+    X = norm_datas.drop(columns=[column_label]).values
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.4, random_state=666, shuffle=True)
-    return X_train, y_train, X_test, y_test
+    return X, y, X_train, y_train, X_test, y_test
+
+
+def test_many_classifiers(X, y, classifiers, Kfold=5):
+    ErrorClassifiers = np.zeros(len(classifiers))
+    rkf = RepeatedKFold(n_splits=Kfold, n_repeats=1)
+    for train_index, test_index in rkf.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        for i_clas in range(len(classifiers)):
+            classifiers[i_clas].fit(X_train, y_train)
+            ErrorClassifiers[i_clas] += 1 - \
+                classifiers[i_clas].score(X_test, y_test)
+    ErrorClassifiers /= rkf.get_n_splits(X)
+    return ErrorClassifiers
 
 
 class _StudentNet(nn.Module):
@@ -436,8 +536,8 @@ class _StudentNet(nn.Module):
         super(_StudentNet, self).__init__()
 
         self.L1 = nn.Linear(input_size, input_size*2)
-        self.L2 = nn.Linear(input_size*2, input_size)
-        self.L3 = nn.Linear(input_size, input_size//2)
+        self.L2 = nn.Linear(input_size*2, input_size*2)
+        self.L3 = nn.Linear(input_size*2, input_size//2)
         self.L4 = nn.Linear(input_size//2, 1)
         self.drop = nn.Dropout(p=0.6)
         self.Sig = nn.Sigmoid()
@@ -454,41 +554,30 @@ class _StudentNet(nn.Module):
 
 
 class _StudentDataset(Dataset):
-    def __init__(self, datalocation, column_to_guess):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
         super(_StudentDataset, self).__init__()
-        loadedPanda = pd.read_pickle(datalocation)
-        self._datas = loadedPanda.drop(columns=['Eleve']).dropna()
-        self.y = self._datas[column_to_guess].values
-        self.X = self._datas.drop(columns=[column_to_guess]).values
 
     def __getitem__(self, index):
         return Variable(torch.FloatTensor([self.X[index]]), requires_grad=True), Variable(torch.FloatTensor([self.y[index]/100]), requires_grad=False)
 
     def __len__(self):
-        return len(self._datas)
+        return len(self.X)
 
 
 class StudentPerceptron():
-    def __init__(self, column_to_guess='Moyenne'):
-        self.dataset = _StudentDataset('./DatasetUser.save', column_to_guess)
-        self.model = _StudentNet(self.dataset[0][0].size()[1])
+    def __init__(self):
+        pass
 
-    def train(self, batch_size=32, epoch=50, lr=0.01, momentum=0.7):
+    def fit(self, X, y):
+        self.dataset = _StudentDataset(X, y)
+        self.model = _StudentNet(len(X[0]))
+        self.train(X, y)
 
-        self._indices = list(range(len(self.dataset)))
-        self._train_idx = np.random.choice(self._indices, size=int(
-            np.floor(0.6*len(self._indices))), replace=False)
-
-        self._test_idx = list(set(self._indices) - set(self._train_idx))
-
-        self._train_sampler = SubsetRandomSampler(self._train_idx)
-        self._test_sampler = SubsetRandomSampler(self._test_idx)
+    def train(self, X, y, batch_size=32, epoch=50, lr=0.01):
         self.train_loader =\
-            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size,
-                                        sampler=self._train_sampler)
-        self.test_loader =\
-            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size,
-                                        sampler=self._test_sampler)
+            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
 
         optimizer = Adam(self.model.parameters(), lr=lr)
         criterion = nn.MSELoss(reduction='sum')
@@ -498,33 +587,37 @@ class StudentPerceptron():
                 pred, targets = b
                 pred = pred.view(len(pred), self.dataset[0][0].size()[1])
                 targets = targets.view(len(pred))
-                #print("pred", pred)
-
+                # print(pred)
                 optimizer.zero_grad()
                 predictions = self.model(pred)
                 predictions = predictions.view(len(pred))
-                print("predictions", predictions.data[0],
-                      "--- Target", targets.data[0])
+                # print((f"""predictions\n{predictions.data}\n"""
+                #        f"""Target\n{targets.data}"""))
                 loss = criterion(predictions, targets)
                 loss.backward()
                 optimizer.step()
                 train_losses.append(loss.item())
 
-            print(' [-] epoch {:4}/{:}, train loss {:.6f} in {:.2f}s'.format(
-                i_epoch+1, epoch, np.mean(train_losses),
-                time.time()-start_time))
+            # print(' [-] epoch {:4}/{:}, train loss {:.6f} in {:.2f}s'.format(
+            #     i_epoch+1, epoch, np.mean(train_losses),
+            #     time.time()-start_time))
 
-    def score(self):
+    def score(self, X, y):
+        self.dataset = _StudentDataset(X, y)
+        batch_size = 1
+        self.test_loader =\
+            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
         accuracy = 0
         for i, b in enumerate(self.test_loader):
             pred, targets = b
             pred = Variable(torch.FloatTensor(pred), requires_grad=False)
             predictions = self.model.forward(pred)
-            accuracy += torch.where(targets+0.1 > predictions > targets-0.1,
+            accuracy += torch.where(targets+0.2 >
+                                    predictions >
+                                    targets-0.2,
                                     torch.tensor([1.0]),
                                     torch.tensor([0.0]))
-        print("Score Pcm : ", accuracy/i)
-        return accuracy/i
+        return 1-accuracy/i
 
     def save(self, path='./Backup/StudentNet.pt'):
         torch.save(self.model.state_dict(), path)
