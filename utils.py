@@ -374,9 +374,8 @@ def show_Kmeans_2D(dataset):
         ax2.set_xlabel("Feature space for the 1st feature")
         ax2.set_ylabel("Feature space for the 2nd feature")
 
-        plt.suptitle(("Silhouette analysis for KMeans clustering on sample data "
-                      "with n_clusters = %d" % n_clusters),
-                     fontsize=14, fontweight='bold')
+        plt.suptitle((f"""Silhouette analysis for KMeans clustering on sample data
+with n_clusters = {n_clusters}"""), fontsize=14, fontweight='bold')
 
     # plt.show()
 
