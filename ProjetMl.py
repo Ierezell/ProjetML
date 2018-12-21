@@ -1,6 +1,6 @@
 from utils import load_and_init_datasets, fill_DataserUser
 from utils import make_boxplot, make_correlation
-from utils import show_pca_features, show_pca_3D, show_pca_2D
+from utils import show_pca_features, show_pca_3D, show_pca_2D, show_tsne_3D
 from utils import get_best_Kmeans, show_Kmeans_2D
 from utils import load_and_split_to_numpy
 from utils import StudentPerceptron
@@ -20,6 +20,7 @@ from sklearn.neighbors import NearestCentroid
 
 # TODO Faire un dictionnaire de data par user (nb réussi, score moyen etc...)
 # DONE Moyenne exercice quiz et exam et temps exam partiel et final.
+# MAIS AU PLUS ON EN A AU MIEUX CEST ALORS FAISONS PLUS
 
 # TODO Pour les quiz ou les exams le temps est limité 20mn quiz 3h exam.
 #      Calculez le temps de réponse.
@@ -34,7 +35,7 @@ from sklearn.neighbors import NearestCentroid
 # TODO Nombre de soumissions par notebooks (colonne count)
 
 # TODO Faire un T-sne comme dans le devoir 5 (cf code d5q4)
-# #Done mais pas beau
+# #Done
 
 # TODO Obtenir des résultats avec LinearSVC regression avec un svm
 # TODO Obtenir des résultats avec le PCM fait main (quasi bon StudentNet)
@@ -84,6 +85,7 @@ DatasetUser = pd.read_pickle('DatasetUser.save')
 # print("Le meilleurs nombre de clusters est : "+str(best_k))
 # show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
 Make_clustering(DatasetUser, 'Moyenne')
+show_tsne_3D(DatasetUser.drop(columns=['Eleve']))
 
 # print("\n\n\n\n\n\n\n\n\n\n\n\n\n")
 X, y, X_train, y_train, X_test, y_test = load_and_split_to_numpy(
