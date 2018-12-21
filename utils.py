@@ -209,9 +209,9 @@ def show_pca_3D(dataset):
 
     )
 
-    dc_1 = go.Scatter3d(x=[0, 30*pca.components_.T[0][0]],
-                        y=[0, 30*pca.components_.T[0][1]],
-                        z=[0, 30*pca.components_.T[0][2]],
+    dc_1 = go.Scatter3d(x=[0, 500*pca.components_.T[0][0]],
+                        y=[0, 500*pca.components_.T[0][1]],
+                        z=[0, 500*pca.components_.T[0][2]],
                         marker=dict(size=1,
                                     color="rgb(84,48,5)"),
                         line=dict(color="red",
@@ -219,9 +219,9 @@ def show_pca_3D(dataset):
                         name="Var1"
                         )
 
-    dc_2 = go.Scatter3d(x=[0, 30*pca.components_.T[1][0]],
-                        y=[0, 30*pca.components_.T[1][1]],
-                        z=[0, 30*pca.components_.T[1][2]],
+    dc_2 = go.Scatter3d(x=[0, 500*pca.components_.T[1][0]],
+                        y=[0, 500*pca.components_.T[1][1]],
+                        z=[0, 500*pca.components_.T[1][2]],
                         marker=dict(size=1,
                                     color="rgb(84,48,5)"),
                         line=dict(color="green",
@@ -229,9 +229,9 @@ def show_pca_3D(dataset):
                         name="Var2"
                         )
 
-    dc_3 = go.Scatter3d(x=[0, 30*pca.components_.T[2][0]],
-                        y=[0, 30*pca.components_.T[2][1]],
-                        z=[0, 30*pca.components_.T[2][2]],
+    dc_3 = go.Scatter3d(x=[0, 500*pca.components_.T[2][0]],
+                        y=[0, 500*pca.components_.T[2][1]],
+                        z=[0, 500*pca.components_.T[2][2]],
                         marker=dict(size=1,
                                     color="rgb(84,48,5)"),
                         line=dict(color="pink",
@@ -239,9 +239,9 @@ def show_pca_3D(dataset):
                         name="Var3"
                         )
 
-    dc_4 = go.Scatter3d(x=[0, 30*pca.components_.T[3][0]],
-                        y=[0, 30*pca.components_.T[3][1]],
-                        z=[0, 30*pca.components_.T[3][2]],
+    dc_4 = go.Scatter3d(x=[0, 500*pca.components_.T[3][0]],
+                        y=[0, 500*pca.components_.T[3][1]],
+                        z=[0, 500*pca.components_.T[3][2]],
                         marker=dict(size=1,
                                     color="rgb(84,48,5)"),
                         line=dict(color="yellow",
