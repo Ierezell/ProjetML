@@ -68,49 +68,47 @@ from sklearn.neighbors import NearestCentroid
 #                        '2018-10-15 15:14:55.788330'),</li>
 # </ul>
 
-# %%
+# print("------------------------------------------------------")
+# print("Lecture et sauvegarde du Json")
 # dataset16, DatasetUser = load_and_init_datasets("./nb_entries_a16.json")
 # DatasetUser = fill_DataserUser(dataset16, DatasetUser)
 # DatasetUser.to_pickle('DatasetUser.save')
 
-# %%
 print("------------------------------------------------------")
 print("Lecture des données enregistrées")
 DatasetUser = pd.read_pickle('DatasetUser.save')
 
+# print("------------------------------------------------------")
+# print("Affichage Boxplot de toutes des différentes données")
+# make_boxplot(DatasetUser.drop(columns=['Eleve']))
 
-# %%
+# print("------------------------------------------------------")
+# print("Calculs et affichage des covariances entre les différentes données")
+# correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
 
-print("------------------------------------------------------")
-print("Affichage Boxplot de toutes des différentes données")
-make_boxplot(DatasetUser.drop(columns=['Eleve']))
+# print(f"Les {len(maxcorr)} meilleurs covariances sont :")
+# for i in range(len(maxcorr)):
+#     print(
+#         f"Entre {indmaxcorr[i][0] :<14} et {indmaxcorr[i][1] :<14} : {maxcorr[i]}")
 
-print("------------------------------------------------------")
-print("Calculs et affichage des covariances entre les différentes données")
-correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
+# print("------------------------------------------------------")
+# print("Affichage PCA Features")
+# show_pca_features(DatasetUser.drop(columns=['Eleve']))
 
-print(f"Les {len(maxcorr)} meilleurs covariances sont :")
-for i in range(len(maxcorr)):
-    print(f"Entre {indmaxcorr[i][0] :<14} et {indmaxcorr[i][1] :<14} : {maxcorr[i]}")
+# print("Affichage PCA 3D")
+# show_pca_3D(DatasetUser.drop(columns=['Eleve']))
 
-print("------------------------------------------------------")
-print("Affichage PCA Features")
-show_pca_features(DatasetUser.drop(columns=['Eleve']))
+# print("Affichage PCA 2D")
+# show_pca_2D(DatasetUser.drop(columns=['Eleve']))
 
-print("Affichage PCA 3D")
-show_pca_3D(DatasetUser.drop(columns=['Eleve']))
+# print("------------------------------------------------------")
+# print("Calcul du meilleur nombre de clusters")
+# best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
 
-print("Affichage PCA 2D")
-show_pca_2D(DatasetUser.drop(columns=['Eleve']))
+# print(f"Le meilleur nombre de clusters est : {best_k}")
 
-print("------------------------------------------------------")
-print("Calcul du meilleur nombre de clusters")
-best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
-
-print(f"Le meilleur nombre de clusters est : {best_k}")
-
-print("Affichage du K Means 2D")
-show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
+# print("Affichage du K Means 2D")
+# show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
 
 print("------------------------------------------------------")
 print("Make Cluster")
@@ -139,24 +137,5 @@ print("Calcul des erreurs sur tous les classifieurs")
 ErrorsClassifieurs = test_many_classifiers(X, y, classifieurs, Kfold=5)
 
 for i in range(len(classifieurs)):
-    print(f"{i :<2}: {str(type(classifieurs[i])) :<66} : {ErrorsClassifieurs[i]}")
-
-# Pcm.load()
-# Pcm.train(batch_size=1)
-# Pcm.score()
-# Pcm.save()
-# %%
-
-# TEST POUR LE TEMPS QUIZZ NON FONCTIONNEL !
-""" tempsQuiz = dataset16.loc[(dataset16['user'] == 'HhwFBj') &
-                          (dataset16['type'] == 2) &
-                          (dataset16['valid'] == True)][
-    ['notebook', 'count', 'date']]
-tempsQuiz
-
-for n in numNotebookQuiz:
-    tps = tempsQuiz.where(tempsQuiz['notebook'] == n).dropna()
-    DatasetUser.loc['TempsQuizz_{}'.format(n)] = (tps.max()-tps.min()).seconds
-tps = tempsQuiz[['date', 'count', 'notebook']].where(
-    tempsQuiz['notebook'] == 44).dropna()['date']
-(tps.max()-tps.min()).seconds """
+    print(
+        f"{i :<2}: {str(type(classifieurs[i])) :<66} : {ErrorsClassifieurs[i]}")
