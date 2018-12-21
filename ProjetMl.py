@@ -6,7 +6,9 @@ from utils import load_and_split_to_numpy
 from utils import StudentPerceptron
 from utils import Make_clustering
 from utils import test_many_classifiers
+
 import pandas as pd
+
 from sklearn.svm import LinearSVC
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -65,37 +67,77 @@ from sklearn.neighbors import NearestCentroid
 #                        '2018-10-15 15:14:55.788330'),</li>
 # </ul>
 
+# %%
 # dataset16, DatasetUser = load_and_init_datasets("./nb_entries_a16.json")
 # DatasetUser = fill_DataserUser(dataset16, DatasetUser)
 # DatasetUser.to_pickle('DatasetUser.save')
 
+# %%
+print("------------------------------------------------------")
+print("Lecture des données enregistrées")
 DatasetUser = pd.read_pickle('DatasetUser.save')
 
-# make_boxplot(DatasetUser.drop(columns=['Eleve']))
-# correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
-# print(maxcorr, indmaxcorr)
+# %%
 
-# show_pca_features(DatasetUser.drop(columns=['Eleve']))
+print("------------------------------------------------------")
+print("Affichage Boxplot de toutes des différentes données")
+make_boxplot(DatasetUser.drop(columns=['Eleve']))
 
-# show_pca_3D(DatasetUser.drop(columns=['Eleve']))
-# show_pca_2D(DatasetUser.drop(columns=['Eleve']))
+print("------------------------------------------------------")
+print("Calculs et affichage des covariances entre les différentes données")
+correlation, maxcorr, indmaxcorr = make_correlation(DatasetUser)
 
-# best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
-# print("Le meilleurs nombre de clusters est : "+str(best_k))
-# show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
+print(f"Les {len(maxcorr)} meilleurs covariances sont :")
+for i in range(len(maxcorr)):
+    print(f"Entre {indmaxcorr[i][0] :<14} et {indmaxcorr[i][1] :<14} : {maxcorr[i]}")
+
+print("------------------------------------------------------")
+print("Affichage PCA Features")
+show_pca_features(DatasetUser.drop(columns=['Eleve']))
+
+print("Affichage PCA 3D")
+show_pca_3D(DatasetUser.drop(columns=['Eleve']))
+
+print("Affichage PCA 2D")
+show_pca_2D(DatasetUser.drop(columns=['Eleve']))
+
+print("------------------------------------------------------")
+print("Calcul du meilleur nombre de clusters")
+best_k = get_best_Kmeans(DatasetUser.drop(columns=['Eleve']))
+
+print(f"Le meilleur nombre de clusters est : {best_k}")
+
+print("Affichage du K Means 2D")
+show_Kmeans_2D(DatasetUser.drop(columns=['Eleve']).dropna())
+
+print("------------------------------------------------------")
+print("Make Cluster")
 Make_clustering(DatasetUser, 'Moyenne')
 
-# print("\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
+print("------------------------------------------------------")
+print("Entrainement des classifieurs")
+
 X, y, X_train, y_train, X_test, y_test = load_and_split_to_numpy(
     'DatasetUser.save', 'Moyenne')
+
 classifieurs = [LinearSVC(),
                 StudentPerceptron(),
                 # QuadraticDiscriminantAnalysis(),
                 LinearDiscriminantAnalysis(),
                 GaussianNB(),
                 NearestCentroid()]
+
+print(f"Il y a {len(classifieurs)} classifieurs :")
+for i in range(len(classifieurs)):
+    print(f"{i :<2}: {type(classifieurs[i])}")
+
+print("Calcul des erreurs sur tous les classifieurs")
 ErrorsClassifieurs = test_many_classifiers(X, y, classifieurs, Kfold=5)
-print(ErrorsClassifieurs)
+
+for i in range(len(classifieurs)):
+    print(f"{i :<2}: {str(type(classifieurs[i])) :<66} : {ErrorsClassifieurs[i]}")
+
 # Pcm.load()
 # Pcm.train(batch_size=1)
 # Pcm.score()

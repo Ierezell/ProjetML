@@ -1,30 +1,31 @@
-
-from sklearn.model_selection import train_test_split
-from torch.optim import Adam
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
-import torch
-from torch.utils.data import Dataset
-from torch.utils.data.sampler import SubsetRandomSampler
 import time
+import sys
+import math
+import pandas as pd
+import numpy as np
+
 import plotly.graph_objs as go
 import plotly.plotly as py
 from plotly.offline import plot, iplot
+
+import matplotlib.pyplot as plt
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.decomposition import PCA
 from sklearn.manifold import MDS, TSNE
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import sys
-import math
-
-
-# Méthodes d'évaluation
 from sklearn.model_selection import train_test_split, RepeatedKFold
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+from torch.utils.data import Dataset
+from torch.utils.data.sampler import SubsetRandomSampler
+from torch.optim import Adam
+
+# Méthodes d'évaluations
 # import cufflinks as cf
 # cf.go_offline()
 
@@ -35,8 +36,7 @@ def load_and_init_datasets(path):
 
     DatasetUser = pd.DataFrame(index=range(len(set(dataset16['user']))))
 
-    DatasetUser['Eleve'] = pd.Series(
-        sorted(set(dataset16['user'])), index=DatasetUser.index)  # %%
+    DatasetUser['Eleve'] = pd.Series(sorted(set(dataset16['user'])), index=DatasetUser.index)
     DatasetUser['Moyenne'] = pd.Series(index=DatasetUser.index)
     DatasetUser['MoyenneExec'] = pd.Series(index=DatasetUser.index)
     DatasetUser['MoyenneQuiz'] = pd.Series(index=DatasetUser.index)
@@ -44,6 +44,7 @@ def load_and_init_datasets(path):
     DatasetUser['Notebookfaits'] = pd.Series(index=DatasetUser.index)
     DatasetUser['TempsExam1'] = pd.Series(index=DatasetUser.index)
     DatasetUser['TempsExam2'] = pd.Series(index=DatasetUser.index)
+
     # DatasetUser['TempsQuiz'] = pd.Series(index=DatasetUser.index)
     # for n in numNotebookQuiz:
     #     DatasetUser[
@@ -51,6 +52,7 @@ def load_and_init_datasets(path):
     # numNotebookQuiz = set(
     # dataset16['notebook'].loc[(dataset16['type'] == 2) &
     #                                         (dataset16['valid'] == True)])
+
     return dataset16, DatasetUser
 
 
@@ -62,29 +64,20 @@ def fill_DataserUser(dataset, DatasetUser):
 
         resultsTot = results['score'].value_counts()
 
-        resultExec = results['score'].where(
-            results['type'] == 1).value_counts()
+        resultExec = results['score'].where(results['type'] == 1).value_counts()
+        resultQuiz = results['score'].where(results['type'] == 2).value_counts()
+        resultExam = results['score'].where(results['type'] == 3).value_counts()
 
-        resultQuiz = results['score'].where(
-            results['type'] == 2).value_counts()
-
-        resultExam = results['score'].where(
-            results['type'] == 3).value_counts()
-
-        DatasetUser.loc[i, 'Moyenne'] = np.average(
-            resultsTot.index, weights=resultsTot.values)
+        DatasetUser.loc[i, 'Moyenne'] = np.average(resultsTot.index, weights=resultsTot.values)
 
         if 1 in set(results['type']):
-            DatasetUser.loc[i, 'MoyenneExec'] = np.average(
-                resultExec.index, weights=resultExec.values)
+            DatasetUser.loc[i, 'MoyenneExec'] = np.average(resultExec.index, weights=resultExec.values)
 
         if 2 in set(results['type']):
-            DatasetUser.loc[i, 'MoyenneQuiz'] = np.average(
-                resultQuiz.index, weights=resultQuiz.values)
+            DatasetUser.loc[i, 'MoyenneQuiz'] = np.average(resultQuiz.index, weights=resultQuiz.values)
 
         if 3 in set(results['type']):
-            DatasetUser.loc[i, 'MoyenneExam'] = np.average(
-                resultExam.index, weights=resultExam.values)
+            DatasetUser.loc[i, 'MoyenneExam'] = np.average(resultExam.index, weights=resultExam.values)
 
         DatasetUser.loc[i, 'Notebookfaits'] = resultsTot.sum()
 
@@ -99,41 +92,44 @@ def fill_DataserUser(dataset, DatasetUser):
             ['notebook', 'count', 'date']]
         if not tempsExam.empty:
             tempsExam1 = tempsExam.where(
-                tempsExam['date'].dt.date == tempsExam['date'].loc[
-                    tempsExam.index[0]].date()).dropna()['date']
+                tempsExam['date'].dt.date == tempsExam['date'].loc[tempsExam.index[0]].date()).dropna()['date']
 
             tempsExam2 = tempsExam.where(
-                tempsExam['date'].dt.date == tempsExam['date'].loc[
-                    tempsExam.index[-1]].date()).dropna()['date']
+                tempsExam['date'].dt.date == tempsExam['date'].loc[tempsExam.index[-1]].date()).dropna()['date']
 
-            DatasetUser.loc[i, 'TempsExam1'] = (
-                tempsExam1.max()-tempsExam1.min()).seconds
+            DatasetUser.loc[i, 'TempsExam1'] = (tempsExam1.max() - tempsExam1.min()).seconds
+            DatasetUser.loc[i, 'TempsExam2'] = (tempsExam2.max() - tempsExam2.min()).seconds
 
-            DatasetUser.loc[i, 'TempsExam2'] = (
-                tempsExam2.max()-tempsExam2.min()).seconds
     return DatasetUser
 
 
 def make_boxplot(dataset):
     plt.figure(figsize=[10, 5])
-    normalized_Dataset = (dataset-dataset.mean())/dataset.std()
+
+    normalized_Dataset = (dataset - dataset.mean())/dataset.std()
     normalized_Dataset.boxplot()
+
     plt.show()
 
 
 def make_correlation(dataset):
     correlations = dataset.corr()
     names = list(correlations.columns)
+
     fig = plt.figure(figsize=[10, 15])
     ax = fig.add_subplot(111)
     cax = ax.matshow(correlations, vmin=-1, vmax=1)
     fig.colorbar(cax)
+
     ticks = np.arange(0, len(correlations), 1)
+
     ax.set_xticks(ticks)
     ax.set_yticks(ticks)
     ax.set_xticklabels(names)
     ax.set_yticklabels(names)
+
     plt.show()
+
     maximum = [0, 0, 0]
     ind_max = [[0, 0], [0, 0], [0, 0]]
     for i in correlations.columns:
@@ -143,31 +139,32 @@ def make_correlation(dataset):
             if i < j:
                 if abs(correlations[i][j]) >= min(maximum):
                     ind_max[maximum.index(min(maximum))] = [i, j]
-                    maximum[maximum.index(min(maximum))] = abs(
-                        correlations[i][j])
+                    maximum[maximum.index(min(maximum))] = abs(correlations[i][j])
+
     return correlations, maximum, ind_max
 
 
 def show_pca_features(dataset):
-    DatasetUser_std = pd.DataFrame(
-        StandardScaler().fit_transform(dataset.dropna()))
+    DatasetUser_std = pd.DataFrame(StandardScaler().fit_transform(dataset.dropna()))
+
     cov_std = DatasetUser_std.corr()
+
     eig_vals, eig_vect = np.linalg.eig(cov_std)
-    eig_pairs = [(np.abs(eig_vals[i]), eig_vect[:, i])
-                 for i in range(len(eig_vals))]
+    eig_pairs = [(np.abs(eig_vals[i]), eig_vect[:, i]) for i in range(len(eig_vals))]
     eig_pairs.sort()
     eig_pairs.reverse()
     sum_ev = sum(eig_vals)
+
     pve = [(i / sum_ev)*100 for i in sorted(eig_vals, reverse=True)]
+
     cum_var_pve = np.cumsum(pve)
 
     fig = plt.figure(figsize=[10, 5])
-    plt.scatter(['PC%s' % i for i in range(
-        len(DatasetUser_std.columns))], pve, s=80)
-    plt.scatter(['PC%s' % i for i in range(len(DatasetUser_std.columns))],
-                cum_var_pve, marker='+')
+    plt.scatter(['PC%s' % i for i in range(len(DatasetUser_std.columns))], pve, s=80)
+    plt.scatter(['PC%s' % i for i in range(len(DatasetUser_std.columns))], cum_var_pve, marker='+')
     plt.legend(['Variance', 'Cumulative variance'])
     plt.show()
+
     """
     FAIS LA MEME CHOSE QU'AU DESSUS GRACE A LA FONCTION PCA
     pca = PCA().fit(DatasetUser.drop(columns=['Eleve']).dropna())
@@ -180,7 +177,9 @@ def show_pca_features(dataset):
 
 def show_pca_3D(dataset):
     pca = PCA(n_components=3).fit(dataset.dropna())
+
     X_reduced = pca.transform(dataset.dropna())
+
     trace1 = go.Scatter3d(
         x=X_reduced[:, 0],
         y=X_reduced[:, 1],
@@ -203,6 +202,7 @@ def show_pca_3D(dataset):
                                   width=6),
                         name="Var1"
                         )
+
     dc_2 = go.Scatter3d(x=[0, 30*pca.components_.T[1][0]],
                         y=[0, 30*pca.components_.T[1][1]],
                         z=[0, 30*pca.components_.T[1][2]],
@@ -212,6 +212,7 @@ def show_pca_3D(dataset):
                                   width=6),
                         name="Var2"
                         )
+
     dc_3 = go.Scatter3d(x=[0, 30*pca.components_.T[2][0]],
                         y=[0, 30*pca.components_.T[2][1]],
                         z=[0, 30*pca.components_.T[2][2]],
@@ -221,6 +222,7 @@ def show_pca_3D(dataset):
                                   width=6),
                         name="Var3"
                         )
+
     dc_4 = go.Scatter3d(x=[0, 30*pca.components_.T[3][0]],
                         y=[0, 30*pca.components_.T[3][1]],
                         z=[0, 30*pca.components_.T[3][2]],
@@ -232,6 +234,7 @@ def show_pca_3D(dataset):
                         )
 
     data = [trace1, dc_1, dc_2, dc_3, dc_4]
+
     layout = go.Layout(
         xaxis=dict(
             title='PC1',
@@ -242,6 +245,7 @@ def show_pca_3D(dataset):
             )
         )
     )
+
     fig = go.Figure(data=data, layout=layout)
     # iplot(fig, filename='pca_3D')
     try:
@@ -252,50 +256,58 @@ def show_pca_3D(dataset):
 
 def show_pca_2D(dataset):
     dat = pd.DataFrame(StandardScaler().fit_transform(dataset.dropna()))
+
     pca = PCA(n_components=2)
     pca.fit(dat)
+
     xvector = pca.components_[0]
     yvector = pca.components_[1]
+
     xs = pca.transform(dat)[:, 0]
     ys = pca.transform(dat)[:, 1]
+
     for i in range(len(xvector)):
-        plt.arrow(0, 0, xvector[i]*max(xs), yvector[i]*max(ys),
-                  color='r', width=0.0005, head_width=0.0025)
-        plt.text(xvector[i]*max(xs)*1.2, yvector[i]*max(ys)*1.2,
-                 list(dat.columns.values)[i], color='r')
+        plt.arrow(0, 0, xvector[i]*max(xs), yvector[i]*max(ys),color='r', width=0.0005, head_width=0.0025)
+        plt.text(xvector[i]*max(xs)*1.2, yvector[i]*max(ys)*1.2,list(dat.columns.values)[i], color='r')
     for i in range(len(xs)):
         plt.plot(xs[i], ys[i], 'bo', alpha=0.5)
+
     plt.title('Biplot')
+
     plt.show()
 
 
 def get_best_Kmeans(dataset):
     k = range(2, 21)
     silhouette = [0.0]*21
+
     for n_clusters in k:
         clusterer = KMeans(n_clusters=n_clusters, random_state=10)
+
         cluster_labels = clusterer.fit_predict(dataset.dropna())
+
         silhouette_avg = silhouette_score(dataset.dropna(), cluster_labels)
         silhouette[n_clusters] = silhouette_avg
-        print(str(n_clusters) + " : " + str(silhouette_avg))
+
+        print(f"{n_clusters :<2} : {silhouette_avg}"
+              f"")
     # We compute the score for each cluster and take the closest to 1
     best_nb_clust = silhouette.index(max(silhouette))
+
     return best_nb_clust
 
 
 def show_Kmeans_2D(dataset):
-    dataset_std = pd.DataFrame(
-        StandardScaler().fit_transform(dataset.dropna()))
+    dataset_std = pd.DataFrame(StandardScaler().fit_transform(dataset.dropna()))
 
     dataset_pca = PCA(n_components=2).fit_transform(dataset_std)
 
-    kmeans_label = KMeans(
-        n_clusters=2, random_state=10).fit_predict(dataset_pca)
+    kmeans_label = KMeans(n_clusters=2, random_state=10).fit_predict(dataset_pca)
 
-    plt.scatter(dataset_pca[:, 0], dataset_pca[:, 1],
-                c=kmeans_label, s=50, cmap='viridis')
+    plt.scatter(dataset_pca[:, 0], dataset_pca[:, 1],c=kmeans_label, s=50, cmap='viridis')
 
     X = dataset_pca
+
     range_n_clusters = range(2, 21)
 
     for n_clusters in range_n_clusters:
@@ -316,8 +328,8 @@ def show_Kmeans_2D(dataset):
 
         # Silhouette score between -1 (worse) and 1 (better)
         silhouette_avg = silhouette_score(X, cluster_labels)
-        print("For n_clusters =", n_clusters,
-              "The average silhouette_score is :", silhouette_avg)
+
+        print(f"For n_clusters = {n_clusters :<2} The average silhouette_score is : {silhouette_avg}")
 
         # Compute the silhouette scores for each sample
         sample_silhouette_values = silhouette_samples(X, cluster_labels)
@@ -367,8 +379,7 @@ def show_Kmeans_2D(dataset):
                     c="white", alpha=1, s=200, edgecolor='k')
 
         for i, c in enumerate(centers):
-            ax2.scatter(c[0], c[1], marker='$%d$' % i, alpha=1,
-                        s=50, edgecolor='k')
+            ax2.scatter(c[0], c[1], marker='$%d$' % i, alpha=1, s=50, edgecolor='k')
 
         ax2.set_title("The visualization of the clustered data.")
         ax2.set_xlabel("Feature space for the 1st feature")
@@ -411,23 +422,29 @@ def _plot_clustering(X_red, labels, title, savepath):
     plt.axis('off')
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(savepath)
+
     plt.close()
 
 
 def Make_clustering(dataset, label_columns):
     dataset = dataset.drop(columns=['Eleve']).dropna()
-    norm_datas = (dataset-dataset.min())/(dataset.max()-dataset.min())
+    norm_datas = (dataset - dataset.min())/(dataset.max() - dataset.min())
+
     X = norm_datas.drop(columns=[label_columns]).values
     y = norm_datas[label_columns].values
+
     pca = PCA(n_components=2)
     mds = MDS(n_components=2, n_init=1)
     tsne = TSNE(n_components=2)
+
     X_pca = pca.fit_transform(X, y)
     X_mds = mds.fit_transform(X, y)
     X_tsne = tsne.fit_transform(X, y)
+
     X_pca = np.array(X_pca)
     X_mds = np.array(X_mds)
     X_tsne = np.array(X_tsne)
+
     _plot_clustering(X_pca, y, "pca", "./pca")
     _plot_clustering(X_mds, y, "mds", "./MDS")
     _plot_clustering(X_tsne, y, "tsne", "./tSNE")
@@ -435,7 +452,9 @@ def Make_clustering(dataset, label_columns):
 
 def show_tsne_3D(dataset):
     tsne = TSNE(n_components=3).fit(dataset.dropna())
+
     X_reduced = tsne.transform(dataset.dropna())
+
     trace1 = go.Scatter3d(
         x=X_reduced[:, 0],
         y=X_reduced[:, 1],
@@ -458,6 +477,7 @@ def show_tsne_3D(dataset):
                                   width=6),
                         name="Var1"
                         )
+
     dc_2 = go.Scatter3d(x=[0, 30*pca.components_.T[1][0]],
                         y=[0, 30*pca.components_.T[1][1]],
                         z=[0, 30*pca.components_.T[1][2]],
@@ -467,6 +487,7 @@ def show_tsne_3D(dataset):
                                   width=6),
                         name="Var2"
                         )
+
     dc_3 = go.Scatter3d(x=[0, 30*pca.components_.T[2][0]],
                         y=[0, 30*pca.components_.T[2][1]],
                         z=[0, 30*pca.components_.T[2][2]],
@@ -476,6 +497,7 @@ def show_tsne_3D(dataset):
                                   width=6),
                         name="Var3"
                         )
+
     dc_4 = go.Scatter3d(x=[0, 30*pca.components_.T[3][0]],
                         y=[0, 30*pca.components_.T[3][1]],
                         z=[0, 30*pca.components_.T[3][2]],
@@ -497,8 +519,10 @@ def show_tsne_3D(dataset):
             )
         )
     )
+
     fig = go.Figure(data=data, layout=layout)
     # iplot(fig, filename='pca_3D')
+
     try:
         plot(fig, filename='PCA_3D.html')
     except TypeError:
@@ -506,28 +530,35 @@ def show_tsne_3D(dataset):
 
 
 def load_and_split_to_numpy(path, column_label):
-    datas = pd.read_pickle(path)
-    datas = datas.drop(columns=['Eleve']).dropna()
-    norm_datas = (datas-datas.min())/(datas.max()-datas.min())
+    datas = pd.read_pickle(path).drop(columns=['Eleve']).dropna()
+    norm_datas = (datas - datas.min())/(datas.max() - datas.min())
+
     y = np.array(np.ceil(norm_datas[column_label].values*100), dtype=int)
     # y = (y//4)*4
+
     X = norm_datas.drop(columns=[column_label]).values
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.4, random_state=666, shuffle=True)
+
     return X, y, X_train, y_train, X_test, y_test
 
 
 def test_many_classifiers(X, y, classifiers, Kfold=5):
     ErrorClassifiers = np.zeros(len(classifiers))
+
     rkf = RepeatedKFold(n_splits=Kfold, n_repeats=1)
+
     for train_index, test_index in rkf.split(X):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
+
         for i_clas in range(len(classifiers)):
             classifiers[i_clas].fit(X_train, y_train)
-            ErrorClassifiers[i_clas] += 1 - \
-                classifiers[i_clas].score(X_test, y_test)
+            ErrorClassifiers[i_clas] += 1 - classifiers[i_clas].score(X_test, y_test)
+
     ErrorClassifiers /= rkf.get_n_splits(X)
+
     return ErrorClassifiers
 
 
@@ -560,7 +591,8 @@ class _StudentDataset(Dataset):
         super(_StudentDataset, self).__init__()
 
     def __getitem__(self, index):
-        return Variable(torch.FloatTensor([self.X[index]]), requires_grad=True), Variable(torch.FloatTensor([self.y[index]/100]), requires_grad=False)
+        return Variable(torch.FloatTensor([self.X[index]]), requires_grad=True), \
+                Variable(torch.FloatTensor([self.y[index]/100]), requires_grad=False)
 
     def __len__(self):
         return len(self.X)
@@ -576,26 +608,34 @@ class StudentPerceptron():
         self.train(X, y)
 
     def train(self, X, y, batch_size=32, epoch=50, lr=0.01):
-        self.train_loader =\
-            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
+        self.train_loader = torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
 
         optimizer = Adam(self.model.parameters(), lr=lr)
+
         criterion = nn.MSELoss(reduction='sum')
+
         for i_epoch in range(epoch):
             start_time, train_losses = time.time(), []
+
             for b in self.train_loader:
                 pred, targets = b
                 pred = pred.view(len(pred), self.dataset[0][0].size()[1])
+
                 targets = targets.view(len(pred))
                 # print(pred)
+
                 optimizer.zero_grad()
+
                 predictions = self.model(pred)
                 predictions = predictions.view(len(pred))
                 # print((f"""predictions\n{predictions.data}\n"""
                 #        f"""Target\n{targets.data}"""))
+
                 loss = criterion(predictions, targets)
                 loss.backward()
+
                 optimizer.step()
+
                 train_losses.append(loss.item())
 
             # print(' [-] epoch {:4}/{:}, train loss {:.6f} in {:.2f}s'.format(
@@ -604,20 +644,23 @@ class StudentPerceptron():
 
     def score(self, X, y):
         self.dataset = _StudentDataset(X, y)
+
         batch_size = 1
-        self.test_loader =\
-            torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
+        self.test_loader = torch.utils.data.DataLoader(self.dataset, batch_size=batch_size)
+
         accuracy = 0
+
         for i, b in enumerate(self.test_loader):
             pred, targets = b
+
             pred = Variable(torch.FloatTensor(pred), requires_grad=False)
+
             predictions = self.model.forward(pred)
-            accuracy += torch.where(targets+0.2 >
-                                    predictions >
-                                    targets-0.2,
+
+            accuracy += torch.where(targets+0.2 > predictions > targets-0.2,
                                     torch.tensor([1.0]),
                                     torch.tensor([0.0]))
-        return 1-accuracy/i
+        return 1 - accuracy/i
 
     def save(self, path='./Backup/StudentNet.pt'):
         torch.save(self.model.state_dict(), path)
