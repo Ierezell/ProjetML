@@ -22,3 +22,8 @@ venv.bak/
 # Vscode
 .vscode
 .code-workspace
+
+*.html
+*.png
+
+.idea/
